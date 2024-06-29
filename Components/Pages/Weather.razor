@@ -1,0 +1,124 @@
+﻿@page "/weather"
+@using Inventario.Models
+@using Inventario.Server.Data
+@inject ApplicationDbContext _context
+<PageTitle>Weather</PageTitle>
+
+<h1>Weather</h1>
+
+<p>This component demonstrates showing data.</p>
+
+@if (forecasts == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Valor</th>
+                <th>Editar</th>
+                <th>Eliminar</th>
+                
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var p in TodosProductos)
+            {
+                <tr>
+                    <td>@p.Nombre</td>
+                    <td>@p.Valor</td> 
+                    <td>
+                        <button @onclick="()=>Asignar(p)" class="btn bg-primary">Editar</button>
+                    </td>
+                    <td>
+                        <button @onclick="()=>Eliminar(p)" class="btn bg-warning">Eliminar</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+<br />
+<label>Nombre</label>
+<input type="text" @bind-value=producto.Nombre class="form-control" />
+<label>Precio</label>
+<input type="number" @bind-value=producto.Valor class="form-control" />
+
+<button @onclick=Guardar class="btn-outline-success">Guardar</button>
+<button @onclick=Actualizar class="btn-outline-success">Actualizar</button>
+<p>@mensaje</p>
+@code {
+    Producto producto = new Producto();
+
+    public static List<Producto> TodosProductos = new List<Producto>();
+    string mensaje = "";
+    async Task Guardar()
+    {
+        _context.Productos.Add(producto);
+        await _context.SaveChangesAsync();
+        await Consultar();
+        mensaje = "Guardado con exito";
+    }
+
+    async Task Consultar()
+    {
+        var listado = _context.Productos.ToList();
+        TodosProductos = listado;
+    }
+
+    void Asignar(Producto miproducto)
+    {
+        producto = miproducto;
+    }
+
+    async Task Actualizar()
+    {
+        var DbObjeto = await _context.Productos.FindAsync(producto.Id);
+        if (DbObjeto == null)
+            mensaje = "No se encuentra";
+        DbObjeto.Nombre = producto.Nombre;
+        DbObjeto.Valor = producto.Valor;
+        await _context.SaveChangesAsync();
+        mensaje = "Actualizado correctamente";
+
+    }
+    async Task Eliminar(Producto productoObj)
+    {
+        _context.Productos.Remove(productoObj);
+        await _context.SaveChangesAsync();
+        mensaje = "Eliminado con exito";
+        await Consultar();
+    }
+
+
+    private WeatherForecast[]? forecasts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Consultar();
+
+
+        // Simulate asynchronous loading to demonstrate a loading indicator
+        await Task.Delay(500);
+
+        var startDate = DateOnly.FromDateTime(DateTime.Now);
+        var summaries = new[] { "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching" };
+        forecasts = Enumerable.Range(1, 5).Select(index => new WeatherForecast
+        {
+            Date = startDate.AddDays(index),
+            TemperatureC = Random.Shared.Next(-20, 55),
+            Summary = summaries[Random.Shared.Next(summaries.Length)]
+        }).ToArray();
+    }
+
+    private class WeatherForecast
+    {
+        public DateOnly Date { get; set; }
+        public int TemperatureC { get; set; }
+        public string? Summary { get; set; }
+        public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+    }
+}
